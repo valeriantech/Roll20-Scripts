@@ -4364,45 +4364,45 @@ var Util = Util || {
 	sheets: {
 		"HORNYCRICKET": [
 			{
+			    character_name: "Hornycricket (Arlyn R.)",
 			    represents: '-K0EefaegFQ3aIKqwj5W',
 			    name: 'Hornycricket',
                 emote: "shifts back to normal.",
-			    bar3_link: '-K08F5vySAAwvl-mXLYt',
+			    bar3_link: 'sheetattr_hp',
 			    side: 0,
-			    imgsrc: 'https://s3.amazonaws.com/files.d20.io/marketplace/5957/cogIdk6QJ8T8vxsz6V6WsA/thumb.png?13400569405',
 			    width: 70,
 			    height: 70
 		    },
 		    {
-                form: "Brown Bear",
+		        character_name: "Hornycricket (Arlyn R.)",
+		        form: "Brown Bear",
 			    represents: '-K1gRdh-f5MnWX9bu7Z4',
 			    name: 'Fluffy Butterscotch (Cricket)',
                 emote: "shimmers slightly as her form bursts forth into the form of a great Brown Bear!",
-			    bar3_link: '-K1gRdiyzx4Y14WsO6jv',
-			    side: 1,
-			    imgsrc: 'https://s3.amazonaws.com/files.d20.io/marketplace/5517/max.png?1339686728',
+                bar3_link: 'sheetattr_hp',
+                side: 1,
 			    width: 140,
 			    height: 140
 		    },
 		    {
-                form: "Giant Spider",
+		        character_name: "Hornycricket (Arlyn R.)",
+		        form: "Giant Spider",
 			    represents: '-K1gIvWoFpQlyPSQ_xar',
 			    name: 'Spidercricket',
                 emote: "sprouts four more appendages and becomes a giant spider!",
-			    bar3_link: '-K1gIvZ-AwkN_P4IsRf5',
-			    side: 2,
-			    imgsrc: 'https://s3.amazonaws.com/files.d20.io/marketplace/5484/max.png?1339683811',
+                bar3_link: 'sheetattr_hp',
+                side: 2,
 			    width: 140,
 			    height: 140
 		    },
 		    {
-                form: "Dire Wolf",
+		        character_name: "Hornycricket (Arlyn R.)",
+		        form: "Dire Wolf",
 			    represents: '-K3GpxR7sFEnkadp4sdk',
 			    name: 'Dire Holo (Cricket)',
                 emote: "crouches down on all fours and shifts into a dire lupine.",
-			    bar3_link: '-K3GpxTPPzh1-ZHaujTZ',
-			    side: 3,
-			    imgsrc: 'https://s3.amazonaws.com/files.d20.io/marketplace/5484/max.png?1339683811',
+                bar3_link: 'sheetattr_hp',
+                side: 3,
 			    width: 140,
 			    height: 140
 		    }
@@ -4417,7 +4417,42 @@ var Util = Util || {
 		        height: 70
 		    }
 
+		],
+		"TREEHUMPER": [
+           {
+               character_name: "Treehumper",
+               represents: '-K94m1RsdK0jN7o6YSsg',
+               name: 'Treehumper',
+               bar2_link: 'sheetattr_AC',
+               bar3_link: 'sheetattr_HP',
+               side: 0,
+               width: 70,
+               height: 70
+           },
+           {
+               form: 'Wolf',
+               character_name: "Treehumper",
+               represents: '-K9nj42B6oCki8e13lJY',
+               name: 'Treehumper',
+               bar2_link: 'sheetattr_npc_AC',
+               bar3_link: 'sheetattr_HP',
+               side: 1,
+               width: 70,
+               height: 70
+           },
+           {
+               form: 'Horse',
+               character_name: "Treehumper",
+               represents: '-K9nnZIOp09YdVgSTkT9',
+               name: 'Treehumper',
+               bar2_link: 'sheetattr_npc_AC',
+               bar3_link: 'sheetattr_HP',
+               side: 1,
+               width: 70,
+               height: 210
+           },
 		]
+
 	},
 	echoenabled: true,
 	commands: {
@@ -4504,10 +4539,8 @@ var Util = Util || {
             args.shift();
             var token = Util.GetSelectedTokens(msg)[0],
 				form = args[1] || '', // type name
-				newinfo = '';
-            //log("wildshape Message: ");
-            //log(msg);
-
+				newinfo = ''
+				    ;
             newinfo = Util.sheets[token.get("gmnotes")][args[0]];
             if (!newinfo) {
                 newinfo = Util.sheets[token.get("gmnotes")][0];
@@ -4529,20 +4562,20 @@ var Util = Util || {
                 });
                 //sendChat("Util: " + Util.Roll(getAttrByName(newinfo.represents, "passive_perception", "current")));
                 shaped.initPlayerToken(token);
-
+                
                 var output = "";
 
-                output += "@{Hornycricket (Arlyn R.)|output_option} ";
+                output += "@{" + newinfo.character_name + "|output_option} ";
                 output += "&{template:5eDefault} ";
                 output += "{{action=1}} ";
-                output += "{{character_name=@{Hornycricket (Arlyn R.)|character_name}}} ";
-                output += "@{Hornycricket (Arlyn R.)|show_character_name} ";
+                output += "{{character_name=@{" + newinfo.character_name + "|character_name}}} ";
+                output += "@{" + newinfo.character_name + "|show_character_name} ";
                 output += "{{title=Wild Shape}} ";
                 output += "{{subheader=Bonus Action}} ";
                 output += "{{subheader2=" + ("undefined" === typeof(newinfo.form) ? "Revert" : newinfo.form) + "}} ";
                 output += "{{emote=" + ("undefined" === typeof(newinfo.emote) ? "shimmers as she changes into another form." : newinfo.emote) + "}} ";
-                if (newinfo.side != 0) { output += "{{effect=@{Hornycricket (Arlyn R.)|classactionoutput1}}}"; }
-                Shell.write(output, undefined, undefined, "Hornycricket (Arlyn R.)");
+                if (newinfo.side != 0) { output += "{{effect=@{" + newinfo.character_name + "|classactionoutput1}}}"; }
+                Shell.write(output, undefined, undefined, "" + newinfo.character_name + "");
 
             }
             else {
@@ -4572,20 +4605,20 @@ var Util = Util || {
                 	            
 	            var output = "";
 
-	            output += "@{Hornycricket (Arlyn R.)|output_option} ";
+	            output += "@{" + newinfo.character_name + "|output_option} ";
 	            output += "&{template:5eDefault} ";
 	            output += "{{action=1}} ";
-	            output += "{{character_name=@{Hornycricket (Arlyn R.)|character_name}}} ";
-	            output += "@{Hornycricket (Arlyn R.)|show_character_name} ";
+	            output += "{{character_name=@{" + newinfo.character_name + "|character_name}}} ";
+	            output += "@{" + newinfo.character_name + "|show_character_name} ";
 	            output += "{{title=Wild Shape}} ";
 	            output += "{{subheader=Bonus Action}} ";
 	            output += "{{subheader2=" + newinfo.form || "Revert" + "}} ";
 	            output += "{{emote=" + newinfo.emote || "shimmers as she changes into another form" + "}} ";
 	            if (newinfo.side != 0) {
-	                output += "{{effect=@{Hornycricket (Arlyn R.)|classactionoutput1}}}";
+	                output += "{{effect=@{" + newinfo.character_name + "|classactionoutput1}}}";
 	                token.set({ bar3_value: getAttrByName(newinfo.represents, "HP", "max") });
 	            }
-	            Shell.write(output, undefined, undefined, "Hornycricket (Arlyn R.)");
+	            Shell.write(output, undefined, undefined, "" + newinfo.character_name + "");
 	        }
 	    }
 
