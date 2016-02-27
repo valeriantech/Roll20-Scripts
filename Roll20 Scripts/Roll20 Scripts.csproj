@@ -36,8 +36,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Javascript\Build-only.js" />
     <Content Include="Javascript\Data.js" />
     <Content Include="Javascript\FullCombined.js" />
+    <Content Include="Javascript\Gametime.js" />
+    <Content Include="Javascript\Utility.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
