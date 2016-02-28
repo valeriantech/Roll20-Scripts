@@ -1,9 +1,6 @@
 // JavaScript source code
 
 
-/*  ############################################################### */
-/*  ShapedImport  */
-/*  ############################################################### */
 // ShapedImport
 
 var shaped = shaped || {
@@ -12,13 +9,10 @@ var shaped = shaped || {
         { command: '!build-monster', usage: "!build-monster [clean]", description: "" },
         { command: '!shaped-parse', usage: '!shaped-parse', description: '' },
         { command: '!shaped-import', usage: '!shaped-import', description: '' },
-        { command: '!shaped-rollhp', usage: '!shaped-rollhp', description: '' },
         { command: '!shaped-settings', usage: '!shaped-settings', description: '' },
         { command: '!shaped-spell', usage: '!shaped-spell', description: '' },
         { command: '!spell-import', usage: '!spell-import', description: '' },
         { command: '!shaped-convert', usage: '!shaped-convert', description: '' },
-        { command: '!init-player-token', usage: '!init-player-token', description: '' },
-        { command: '!shaped-token-vision', usage: '!shaped-token-vision', description: '' },
         { command: '!shaped-token-macro', usage: '!shaped-token-macro', description: '' }
     ],
     settings: {
@@ -45,34 +39,9 @@ var shaped = shaped || {
         addSaveQueryMacroTokenAbility: false, //change to false if you do not want a macro "Save" on every token
         addCheckQueryMacroTokenAbility: false, //change to false if you do not want a macro "Check" on every token
 
-        useAmmoAutomatically: true,
-        bar: [
-          /* Setting these to a sheet value will set the token bar value. If they are set to '' or not set then it will use whatever you already have set on the token
-           Do not use npc_HP, use HP instead
-           */
-          {
-              name: '', // BLACK bar -- always stealth.
-              max: false,
-              link: false,
-              show: false
-          }, {
-              name: 'npc_AC', // YELLOW bar 'speed'
-              max: false,
-              link: true,
-              show: false
-          }, {
-              name: 'HP', // GREEN bar
-              max: true,
-              link: false,
-              show: false
-          }
-        ],
 
         // In-game, separate out to separate script.
 
-        //hideGMInfo: true, //hide some roll template info from your players. This requires that the gm uses a browser extension
-        rollMonsterHpOnDrop: true, // will roll HP when character are dropped on map
-        monsterHpFormula: 'average+' // average+ gives above average rolls with avg as min.
 
     },
 
@@ -80,17 +49,8 @@ var shaped = shaped || {
         version: 'Sep 19th',
         addTokenCache: [],
         RegisterHandlers: function () {
-            on('chat:message', shaped.HandleInput); // Used for a 5eDefault parse (ammo) should be moved to a general or 5e parse script.
             for (var i = 0; i < shaped.commands.length; i++) {
                 Shell.registerCommand(shaped.commands[i].command, shaped.commands[i].usage, shaped.commands[i].description, shaped.HandleCommands);
-            }
-            if (shaped.settings.rollMonsterHpOnDrop) {
-                on('add:graphic', function (obj) {
-                    shaped.statblock.addTokenCache.push(obj.id);
-                });
-                on('change:graphic', function (obj) {
-                    shaped.rollTokenHpOnDrop(obj);
-                });
             }
 
             log('Shaped Scripts ready');
@@ -108,28 +68,6 @@ var shaped = shaped || {
         return string.charAt(0).toUpperCase() + string.slice(1);
     },
 
-    HandleInput: function (msg) {
-        shaped.commandExecuter = msg.who;
-        if (shaped.settings.useAmmoAutomatically && msg.rolltemplate === '5eDefault' && msg.content.indexOf('{{ammo_auto=1}}') !== -1) {
-            var character_name,
-              attribute,
-              match,
-              regex = /\{\{(.*?)\}\}/gi;
-
-            while (match = regex.exec(msg.content)) {
-                if (match[1]) {
-                    var splitAttr = match[1].split('=');
-                    if (splitAttr[0] === 'character_name') {
-                        character_name = splitAttr[1];
-                    }
-                    if (splitAttr[0] === 'ammo_field') {
-                        attribute = splitAttr[1];
-                    }
-                }
-            }
-            shaped.decrementAmmo(character_name, attribute);
-        }
-    },
 
     HandleCommands: function (args, msg) {
         if (msg.type !== 'api') {
@@ -147,106 +85,28 @@ var shaped = shaped || {
                 }
                 shaped.getSelectedToken(msg, shaped.importStatblock);
                 break;
-            case '!shaped-rollhp':
-                shaped.getSelectedToken(msg, shaped.rollTokenHp);
-                break;
             case '!shaped-settings':
                 shaped.changeSettings(args);
                 break;
             case '!shaped-spell':
             case '!spell-import':
                 log("-------------------BEGIN---------------");
-                log("Calling shaped.getSelectedToken(msg, shaped.spellImport, args) with options:");
+                log("Calling Util.getSelectedToken(msg, shaped.spellImport, args) with options:");
                 shaped.logObject(msg);
                 shaped.logObject(args);
                 log("-------------------END-----------------");
                 var tmp = args.shift();
-                shaped.getSelectedToken(msg, shaped.spellImport, args);
+                Util.getSelectedToken(msg, shaped.spellImport, args);
                 args.unshift(tmp);
                 break;
             case '!shaped-convert':
                 var tmp = args.shift();
-                shaped.getSelectedToken(msg, shaped.parseOldToNew);
-                break;
-            case '!init-player-token':
-                shaped.getSelectedToken(msg, shaped.initPlayerToken);
-                break;
-            case '!shaped-token-vision':
-                shaped.getSelectedToken(msg, shaped.setTokenVision);
+                Util.getSelectedToken(msg, shaped.parseOldToNew);
                 break;
             case '!shaped-token-macro':
-                shaped.getSelectedToken(msg, shaped.tokenMacros, args);
+                Util.getSelectedToken(msg, shaped.tokenMacros, args);
                 break;
         }
-    },
-
-    setTokenVision: function (token) {
-        var id = token.get('represents'),
-            character = findObjs({
-                _type: 'character',
-                id: id
-            })[0],
-            characterName = getAttrByName(id, 'character_name', 'current');
-        var blindsight = parseInt(getAttrByName(id, 'blindsight'), 10) || 0,
-            darkvision = parseInt(getAttrByName(id, 'darkvision'), 10) || 0,
-            tremorsense = parseInt(getAttrByName(id, 'tremorsense'), 10) || 0,
-            truesight = parseInt(getAttrByName(id, 'truesight'), 10) || 0,
-            longestVisionRange = Math.max(blindsight, darkvision, tremorsense, truesight),
-            longestVisionRangeForSecondaryDarkvision = Math.max(blindsight, tremorsense, truesight),
-            lightRadius,
-            dimRadius;
-
-        if (longestVisionRange === blindsight) {
-            lightRadius = blindsight;
-            dimRadius = blindsight;
-        } else if (longestVisionRange === tremorsense) {
-            lightRadius = tremorsense;
-            dimRadius = tremorsense;
-        } else if (longestVisionRange === truesight) {
-            lightRadius = truesight;
-            dimRadius = truesight;
-        } else if (longestVisionRange === darkvision) {
-            lightRadius = Math.ceil(darkvision * 1.1666666);
-            if (longestVisionRangeForSecondaryDarkvision > 0) {
-                dimRadius = longestVisionRangeForSecondaryDarkvision;
-            } else {
-                dimRadius = -5;
-            }
-        }
-
-        token.set('light_radius', lightRadius);
-        token.set('light_dimradius', dimRadius);
-        token.set('light_hassight', true);
-        token.set('light_angle', 360);
-        token.set('light_losangle', 360);
-    },
-    initPlayerToken: function (token) {
-        token.set({
-            layer: 'objects',
-            showname: true,
-            isdrawing: false,
-            showplayers_name: true,
-            showplayers_bar1: false,
-            showplayers_bar2: false,
-            showplayers_bar3: true,
-            showplayers_aura1: false,
-            showplayers_aura2: false,
-            playersedit_aura1: false,
-            playersedit_aura2: false,
-            playersedit_name: false,
-            playersedit_bar1: true,
-            playersedit_bar2: false,
-            playersedit_bar3: true,
-            statusmarkers: '',
-            light_multiplier: 1
-        });
-        token.set({
-            bar3_link: "sheetattr_HP",
-            bar3_value: getAttrByName(token.get("represents"), 'HP', 'current'),
-            bar3_max: getAttrByName(token.get('represents'), 'HP', 'max')
-        });
-        shaped.setTokenVision(token);
-        //log(token);
     },
 
     messageToChat: function (message) {
@@ -279,6 +139,7 @@ var shaped = shaped || {
             }
         } catch (e) {
             shaped.messageToChat('Exception: ' + e);
+            log(msg);
         }
     },
 
@@ -331,101 +192,6 @@ var shaped = shaped || {
     },
     createCheckQueryTokenAction: function (characterName) {
         shaped.setAbility('Check', '', '%{' + characterName + '|check_query_macro}', shaped.settings.createAbilityAsToken);
-    },
-
-    decrementAmmo: function (characterName, attributeName) {
-        var obj = findObjs({
-            _type: 'character',
-            name: characterName
-        })[0];
-        var attr = findObjs({
-            _type: 'attribute',
-            _characterid: obj.id,
-            name: attributeName
-        })[0];
-        log('TODO: Fix decrement ammo. attributeName: ' + attributeName);
-        var val = parseInt(attr.get('current'), 10) || 0;
-
-        attr.set({ current: val - 1 });
-    },
-
-    rollTokenHpOnDrop: function (obj) {
-        if (_.contains(shaped.statblock.addTokenCache, obj.id) && 'graphic' === obj.get('type') && 'token' === obj.get('subtype')) {
-            shaped.statblock.addTokenCache = _.without(shaped.statblock.addTokenCache, obj.id);
-            shaped.rollTokenHp(obj);
-        }
-    },
-
-    rollTokenHp: function (token) {
-        var barOfHP;
-        for (var i = 0; i < 3; i++) {
-            if (shaped.settings.bar[i].name === 'HP') {
-                barOfHP = i + 1;
-                break;
-            }
-        }
-        if (!barOfHP) {
-            shaped.messageToChat('One of the bar names has to be set to "HP" for random HP roll');
-            return;
-        }
-
-        var barTokenName = 'bar' + (barOfHP),
-          represent = token.get('represents');
-
-        if (represent === '') {
-            //shaped.messageToChat('Token does not represent a character');
-        } else if (token.get(barTokenName + '_link') !== '') {
-            //shaped.messageToChat('Token ' + barTokenName + ' is linked');
-        } else {
-            var isNPC = getAttrByName(represent, 'is_npc', 'current');
-            if (isNPC === 1 || isNPC === '1') {
-
-                var hdArray = [4, 6, 8, 10, 12, 20],
-                  hdFormula = '',
-                  hdFormulaChat = '',
-                  hdAverage = 0,
-                  totalLevels = 0,
-                  conScore = parseInt(getAttrByName(represent, 'constitution', 'current'), 10),
-                  conMod = Math.floor((conScore - 10) / 2);
-
-                for (i = 0; i < hdArray.length; i++) {
-                    var numOfHDRow = parseInt(getAttrByName(represent, 'hd_d' + hdArray[i], 'current'), 10);
-                    if (numOfHDRow) {
-                        if (hdFormulaChat !== '') {
-                            hdFormulaChat += ' + ';
-                        }
-                        totalLevels += numOfHDRow;
-                        hdFormulaChat += numOfHDRow + 'd' + hdArray[i];
-                        for (var j = 0; j < numOfHDRow; j++) {
-                            if (hdFormula !== '') {
-                                hdFormula += ' + ';
-                            }
-                            hdAverage += (hdArray[i] / 2 + 1) + conMod;
-                            hdFormula += '{d' + hdArray[i] + ' + ' + conMod + ', 0d0+1';
-                            if (shaped.settings.monsterHpFormula === 'average+') {
-                                hdFormula += ', 0d0+' + (hdArray[i] / 2 + 1 + conMod);
-                            }
-                            hdFormula += '}kh1';
-
-                        }
-                    }
-                }
-
-                hdFormulaChat += ' + ' + conMod * totalLevels;
-                //messageToChat("Rolling HP: hdFormula: " + hdFormula);
-
-                sendChat('Shaped', '/roll ' + hdFormula, function (ops) {
-                    var rollResult = JSON.parse(ops[0].content);
-                    if (_.has(rollResult, 'total')) {
-                        token.set(barTokenName + '_value', rollResult.total);
-                        token.set(barTokenName + '_max', rollResult.total);
-
-                        shaped.messageToChat('HP (' + hdFormulaChat + ') | average: ' + Math.floor(hdAverage) + ' | rolled: ' + rollResult.total);
-                    }
-                });
-            }
-        }
-        //log('Still working after trying to roll hp');
     },
 
     setCharacter: function (token, gmnotes) {
@@ -558,7 +324,7 @@ var shaped = shaped || {
                 token.set('showplayers_bar3', 'true');
             }
 
-            shaped.setTokenVision(token);
+            shaped_utility.setTokenVision(token);
         }
         shaped.messageToChat(shaped.status);
 
@@ -1055,45 +821,6 @@ var shaped = shaped || {
             shaped.setAttribute(attrName, value);
         }
     },
-
-    /*   setTokenVision: function (token) {
-           var blindsight = parseInt(getAttrByName(shaped.characterId, 'blindsight'), 10) || 0,
-             darkvision = parseInt(getAttrByName(shaped.characterId, 'darkvision'), 10) || 0,
-             tremorsense = parseInt(getAttrByName(shaped.characterId, 'tremorsense'), 10) || 0,
-             truesight = parseInt(getAttrByName(shaped.characterId, 'truesight'), 10) || 0,
-             longestVisionRange = Math.max(blindsight, darkvision, tremorsense, truesight),
-             longestVisionRangeForSecondaryDarkvision = Math.max(blindsight, tremorsense, truesight),
-             lightRadius,
-             dimRadius;
-   
-           if (longestVisionRange === blindsight) {
-               lightRadius = blindsight;
-               dimRadius = blindsight;
-           } else if (longestVisionRange === tremorsense) {
-               lightRadius = tremorsense;
-               dimRadius = tremorsense;
-           } else if (longestVisionRange === truesight) {
-               lightRadius = truesight;
-               dimRadius = truesight;
-           } else if (longestVisionRange === darkvision) {
-               lightRadius = Math.ceil(darkvision * 1.1666666);
-               if (longestVisionRangeForSecondaryDarkvision > 0) {
-                   dimRadius = longestVisionRangeForSecondaryDarkvision;
-               } else {
-                   dimRadius = -5;
-               }
-           }
-   
-           if (lightRadius > 0) {
-               token.set('light_radius', lightRadius);
-           }
-           if (dimRadius) {
-               token.set('light_dimradius', dimRadius);
-           }
-           token.set('light_hassight', true);
-           token.set('light_angle', 360);
-           token.set('light_losangle', 360);
-       },*/ // SetTokenVision (original)
 
     parseChallenge: function (cr) {
         var input = cr.replace(/[, ]/g, '');
@@ -1941,7 +1668,7 @@ var shaped = shaped || {
 
         shaped.setBars(token);
 
-        shaped.setTokenVision(token);
+        shaped_utility.setTokenVision(token);
 
         if (shaped.settings.showName) {
             token.set('showname', true);

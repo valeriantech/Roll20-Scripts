@@ -549,20 +549,6 @@ var Torch = Torch || (function () {
     };
 }());
 
-on("ready", function () {
-    'use strict';
-
-    if ("undefined" !== typeof isGM && _.isFunction(isGM)) {
-        Torch.CheckInstall();
-        Torch.RegisterEventHandlers();
-    } else {
-        log('--------------------------------------------------------------');
-        log('Torch requires the isGM module to work.');
-        log('isGM GIST: https://gist.github.com/shdwjk/8d5bb062abab18463625');
-        log('--------------------------------------------------------------');
-    }
-});
-
 /*  ############################################################### */
 /*  APIHeartbeat */
 /*  ############################################################### */
@@ -826,20 +812,6 @@ var APIHeartBeat = APIHeartBeat || (function () {
 
 }());
 
-on('ready', function () {
-    'use strict';
-
-    if ("undefined" !== typeof isGM && _.isFunction(isGM)) {
-        APIHeartBeat.CheckInstall();
-        APIHeartBeat.RegisterEventHandlers();
-    } else {
-        log('--------------------------------------------------------------');
-        log('APIHeartBeat requires the isGM module to work.');
-        log('isGM GIST: https://gist.github.com/shdwjk/8d5bb062abab18463625');
-        log('--------------------------------------------------------------');
-    }
-});
-
 
 /*  ############################################################### */
 /*  Vamyan-util */
@@ -938,8 +910,10 @@ var Util = Util || {
                character_name: "Treehumper",
                represents: '-K94m1RsdK0jN7o6YSsg',
                name: 'Treehumper',
-               bar2_link: 'sheetattr_AC',
-               bar3_link: 'sheetattr_HP',
+               emote: 'shimmers as he returns to normal.',
+               bar2_link: 'ac',
+               bar3_link: 'HP',
+               action: "Bonus Action",
                side: 0,
                width: 70,
                height: 70
@@ -949,8 +923,10 @@ var Util = Util || {
                character_name: "Treehumper",
                represents: '-K9nj42B6oCki8e13lJY',
                name: 'Treehumper',
-               bar2_link: 'sheetattr_npc_AC',
-               bar3_link: 'sheetattr_HP',
+               emote: "shimmers, his legs twist and tendons snap into a new angle, every pore on his body screams at the sudden penetration of fur through his epidermis, his skull shifts, breaks, and reforms as it elongates into a snarled furry face. The cheers of fleas rise up in a joyuous cocophany as they go into a ravenous feeding frenzy.",
+               bar2_link: 'npc_AC',
+               bar3_link: 'HP',
+               action: "Action",
                side: 1,
                width: 70,
                height: 70
@@ -960,8 +936,10 @@ var Util = Util || {
                character_name: "Treehumper",
                represents: '-K9nnZIOp09YdVgSTkT9',
                name: 'Treehumper',
-               bar2_link: 'sheetattr_npc_AC',
-               bar3_link: 'sheetattr_HP',
+               emote: "turns into a horse. Ride him.",
+               bar2_link: 'npc_AC',
+               bar3_link: 'HP',
+               action: "Action",
                side: 1,
                width: 70,
                height: 210
@@ -1037,7 +1015,7 @@ var Util = Util || {
         },
         dumptokens: function (args, msg) {
             var tokens = Util.GetSelectedTokens(msg);
-            log(tokens);
+            //log(tokens);
             var i = 0,
 				max = tokens.length;
             if (max) {
@@ -1069,14 +1047,20 @@ var Util = Util || {
                 token.set({
                     name: newinfo.name || "Not found",
                     represents: newinfo.represents || "",
-                    bar3_link: newinfo.bar3_link || "sheetattr_HP",
-                    bar3_value: getAttrByName(newinfo.represents, "HP", "current"),
-                    bar3_max: getAttrByName(newinfo.represents, "HP", "max"),
+                    bar2_link: "sheetattr_" + (newinfo.bar2_link ? newinfo.bar3_link : "ac"),
+                    bar3_link: "sheetattr_" + (newinfo.bar2_link ? newinfo.bar3_link : "HP"),
                     width: newinfo.width || 70,
                     height: newinfo.height || 70
                 });
-                //sendChat("Util: " + Util.Roll(getAttrByName(newinfo.represents, "passive_perception", "current")));
-                shaped.initPlayerToken(token);
+
+                Util.SetTokenValue(getAttrByName(newinfo.represents, newinfo.bar2_link, "current"), token, "bar2_value");
+                Util.SetTokenValue(getAttrByName(newinfo.represents, newinfo.bar2_link, "max"), token, "bar2_max");
+                Util.SetTokenValue(getAttrByName(newinfo.represents, newinfo.bar2_link + "_armor_calc", "current"), token, "bar2_value");
+                Util.SetTokenValue(getAttrByName(newinfo.represents, newinfo.bar2_link + "_armor_calc", "max"), token, "bar2_max");
+                Util.SetTokenValue(getAttrByName(newinfo.represents, newinfo.bar3_link, "current"), token, "bar3_value");
+                Util.SetTokenValue(getAttrByName(newinfo.represents,newinfo.bar3_link,"max"),token,"bar3_max");
+
+                shaped_utility.initPlayerToken(token);
                 
                 var output = "";
 
@@ -1086,7 +1070,7 @@ var Util = Util || {
                 output += "{{character_name=@{" + newinfo.character_name + "|character_name}}} ";
                 output += "@{" + newinfo.character_name + "|show_character_name} ";
                 output += "{{title=Wild Shape}} ";
-                output += "{{subheader=Bonus Action}} ";
+                output += "{{subheader=" + newinfo.action + "}} ";
                 output += "{{subheader2=" + ("undefined" === typeof(newinfo.form) ? "Revert" : newinfo.form) + "}} ";
                 output += "{{emote=" + ("undefined" === typeof(newinfo.emote) ? "shimmers as she changes into another form." : newinfo.emote) + "}} ";
                 if (newinfo.side != 0) { output += "{{effect=@{" + newinfo.character_name + "|classactionoutput1}}}"; }
@@ -1271,7 +1255,21 @@ var Util = Util || {
             //log("Side not changed. " + obj["side"] + " (" + obj.get("side") + ") -- Previous: " + prev["side"]);
         }
     },
-
+    SetTokenValue: function (formula, token, barname) {
+        if (formula) {
+            sendChat('Util', '/roll ' + formula, function (ops) {
+                var rollResult = JSON.parse(ops[0].content);
+                if (_.has(rollResult, 'total')) {
+                    token.set(barname, rollResult.total);
+                    log("Rolled " + formula + " -- Result: " + rollResult.total);
+                }
+            });
+        }
+        else {
+            log("Bad formula passed to SetTokenValue. Bar name: " + barname);
+            return;
+        }
+    },
     Roll: function (expression, sheet_id) {
         var rollResult = '';
         //log("Attempting to roll: " + expression + " on Sheet " + sheet_id);
@@ -1349,6 +1347,25 @@ var Util = Util || {
             log('Exception: ' + e);
         }
     },
+    getSelectedToken: function (msg, callback) {
+        try {
+            if (!msg.selected || !msg.selected.length) {
+                throw ('No token selected');
+            }
+
+            for (var i = 0; i < msg.selected.length; i++) {
+                if (msg.selected[i]._type === 'graphic') {
+                    var obj = getObj('graphic', msg.selected[i]._id);
+                    if (obj && obj.get('subtype') === 'token') {
+                        callback(obj, arguments[2]);
+                    }
+                }
+            }
+        } catch (e) {
+            Util.messageToChat('Exception: ' + e);
+            log(msg);
+        }
+    },
     FindActiveToken: function (msg, sheet) {
         var token,
 		pageid;
@@ -1374,6 +1391,7 @@ var Util = Util || {
         }
         return token;
     },
+
 
     HandleMessages: function (msg) {
         //log(msg);
@@ -1415,7 +1433,7 @@ var Util = Util || {
             if (msg.content.indexOf("Stealth") > -1) {
 
                 while (match = regex.exec(msg.content)) {
-                    log(match);
+                    //log(match);
                     if (match[1]) {
                         //var splitAttr = match[1].split('=');
                         switch (match[1]) {
@@ -1459,6 +1477,14 @@ var Util = Util || {
         }
         return;
     },
+    messageToChat: function (message,commandExecuter) {
+        log(message);
+        sendChat('Vamyan Utility', '/w gm ' + message);
+        if (commandExecuter && commandExecuter.indexOf('(GM)') === -1) {
+            sendChat('Vamyan Utility', '/w \"' + commandExecuter + '\" ' + message);
+        }
+    },
+
     RelayTemplateHeaders: function (data, msg) {
         if (!Util.echoenabled) { return; }
         var headers = [
@@ -1588,8 +1614,6 @@ var Util = Util || {
 };
 
 
-on('ready', Util.init);
-
 
 /*  ############################################################### */
 /*  Shell */
@@ -1686,6 +1710,7 @@ var Shell = Shell || {
             description: desc,
             callback: fn
         };
+        log("Shell: Command registered -- " + sig);
     },
 
     unregisterCommand: function (cmd) {
@@ -2032,7 +2057,7 @@ var Shell = Shell || {
                 }
             }
             //Shell.writeAndLog("5eTemplate values:");
-            log(templatevalues);
+            //log(templatevalues);
             Util.RelayTemplateHeaders(templatevalues, msg);
             //Shell.write(templatevalues);
             return;
@@ -2056,7 +2081,6 @@ var Shell = Shell || {
     }
 };
 
-on("ready", Shell.init);
 
 /*  ############################################################### */
 /*  TokenNamNumber */
@@ -2446,9 +2470,401 @@ var TokenNameNumber = TokenNameNumber || (function () {
     };
 }());
 
+
+var shaped_utility = shaped_utility || {
+    commands: [
+        { command: '!shaped-rollhp', usage: '!shaped-rollhp', description: '' },
+        { command: '!init-player-token', usage: '!init-player-token', description: '' },
+        { command: '!shaped-token-vision', usage: '!shaped-token-vision', description: '' },
+    ],
+    settings: {
+        useAmmoAutomatically: true,
+        rollMonsterHpOnDrop: true, // will roll HP when character are dropped on map
+        monsterHpFormula: 'average+', // average+ gives above average rolls with avg as min.
+        bar: [
+          /* Setting these to a sheet value will set the token bar value. If they are set to '' or not set then it will use whatever you already have set on the token
+           Do not use npc_HP, use HP instead
+           */
+          {
+              name: '', // BLACK bar -- always stealth.
+              max: false,
+              link: false,
+              show: false
+          }, {
+              name: 'npc_AC', // YELLOW bar 'speed'
+              max: false,
+              link: true,
+              show: false
+          }, {
+              name: 'HP', // GREEN bar
+              max: true,
+              link: false,
+              show: false
+          }
+        ],
+    },
+    statblock: {
+        version: 'Sep 19th',
+        addTokenCache: [],
+        RegisterHandlers: function () {
+            for (var i = 0; i < shaped_utility.commands.length; i++) {
+                Shell.registerCommand(shaped_utility.commands[i].command, shaped_utility.commands[i].usage, shaped_utility.commands[i].description, shaped_utility.HandleCommands);
+            }
+            if (shaped_utility.settings.rollMonsterHpOnDrop) {
+                on('add:graphic', function (obj) {
+                    shaped_utility.statblock.addTokenCache.push(obj.id);
+                });
+                on('change:graphic', function (obj) {
+                    shaped_utility.rollTokenHpOnDrop(obj);
+                });
+            }
+            on('chat:message', shaped_utility.HandleInput); // Used for a 5eDefault parse (ammo) should be moved to a general or 5e parse script.
+
+            log('Shaped Scripts ready');
+        }
+    },
+
+    status: '',
+    errors: [],
+    obj: null,
+    characterId: null,
+    characterName: null,
+    commandExecuter: null,
+
+    HandleCommands: function (args, msg) {
+        if (msg.type !== 'api') {
+            return;
+        }
+        //log('ShapedImport Debug Log: msg.content: ' + msg.content);
+        //shaped.logObject(args);
+
+        switch (args[0]) {
+            case '!shaped-rollhp':
+                Util.getSelectedToken(msg, shaped_utility.rollTokenHp);
+                break;
+            case '!init-player-token':
+                Util.getSelectedToken(msg, shaped_utility.initPlayerToken);
+                break;
+            case '!shaped-token-vision':
+                Util.getSelectedToken(msg, shaped_utility.setTokenVision);
+                break;
+        }
+    },
+
+    setTokenVision: function (token) {
+        //log("setTokenVision: Attempting to reset vision on " + ( "undefined" === typeof(token) ? "undefined" : token.id ));
+        //log(token);
+        var id = token.get('represents'),
+            character = findObjs({
+                _type: 'character',
+                id: id
+            })[0],
+            characterName = getAttrByName(id, 'character_name', 'current');
+        var blindsight = parseInt(getAttrByName(id, 'blindsight'), 10) || 0,
+            darkvision = parseInt(getAttrByName(id, 'darkvision'), 10) || 0,
+            tremorsense = parseInt(getAttrByName(id, 'tremorsense'), 10) || 0,
+            truesight = parseInt(getAttrByName(id, 'truesight'), 10) || 0,
+            longestVisionRange = Math.max(blindsight, darkvision, tremorsense, truesight),
+            longestVisionRangeForSecondaryDarkvision = Math.max(blindsight, tremorsense, truesight),
+            lightRadius,
+            dimRadius;
+
+        if (longestVisionRange === blindsight) {
+            lightRadius = blindsight;
+            dimRadius = blindsight;
+        } else if (longestVisionRange === tremorsense) {
+            lightRadius = tremorsense;
+            dimRadius = tremorsense;
+        } else if (longestVisionRange === truesight) {
+            lightRadius = truesight;
+            dimRadius = truesight;
+        } else if (longestVisionRange === darkvision) {
+            lightRadius = Math.ceil(darkvision * 1.1666666);
+            if (longestVisionRangeForSecondaryDarkvision > 0) {
+                dimRadius = longestVisionRangeForSecondaryDarkvision;
+            } else {
+                dimRadius = -5;
+            }
+        }
+
+        token.set('light_radius', lightRadius);
+        token.set('light_dimradius', dimRadius);
+        token.set('light_hassight', true);
+        token.set('light_angle', 360);
+        token.set('light_losangle', 360);
+        token.set('light_otherplayers', false);
+    },
+    initPlayerToken: function (token) {
+        token.set({
+            layer: 'objects',
+            showname: true,
+            isdrawing: false,
+            showplayers_name: true,
+            showplayers_bar1: false,
+            showplayers_bar2: false,
+            showplayers_bar3: true,
+            showplayers_aura1: false,
+            showplayers_aura2: false,
+            playersedit_aura1: false,
+            playersedit_aura2: false,
+            playersedit_name: false,
+            playersedit_bar1: true,
+            playersedit_bar2: false,
+            playersedit_bar3: true,
+            statusmarkers: '',
+            light_multiplier: 1
+        });
+        token.set('bar3_link', "sheetattr_HP");
+        token.set('bar2_link', "sheetattr_ac");
+
+        shaped_utility.setTokenVision(token);
+        //log(token);
+    },
+
+
+    // Auto-Ammo stuff
+
+    // **************************************************
+    HandleInput: function (msg) {
+        shaped_utility.commandExecuter = msg.who;
+        if (shaped_utility.settings.useAmmoAutomatically && msg.rolltemplate === '5eDefault' && msg.content.indexOf('{{ammo_auto=1}}') !== -1) {
+            var character_name,
+              attribute,
+              match,
+              regex = /\{\{(.*?)\}\}/gi;
+
+            while (match = regex.exec(msg.content)) {
+                if (match[1]) {
+                    var splitAttr = match[1].split('=');
+                    if (splitAttr[0] === 'character_name') {
+                        character_name = splitAttr[1];
+                    }
+                    if (splitAttr[0] === 'ammo_field') {
+                        attribute = splitAttr[1];
+                    }
+                }
+            }
+            shaped_utility.decrementAmmo(character_name, attribute);
+        }
+    },
+
+    decrementAmmo: function (characterName, attributeName) {
+        var obj = findObjs({
+            _type: 'character',
+            name: characterName
+        })[0];
+        var attr = findObjs({
+            _type: 'attribute',
+            _characterid: obj.id,
+            name: attributeName
+        })[0];
+        log('TODO: Fix decrement ammo. attributeName: ' + attributeName);
+        var val = parseInt(attr.get('current'), 10) || 0;
+
+        attr.set({ current: val - 1 });
+    },
+    // **************************************************
+
+    rollTokenHpOnDrop: function (obj) {
+        if (_.contains(shaped_utility.statblock.addTokenCache, obj.id) && 'graphic' === obj.get('type') && 'token' === obj.get('subtype')) {
+            shaped_utility.statblock.addTokenCache = _.without(shaped_utility.statblock.addTokenCache, obj.id);
+            shaped_utility.rollTokenHp(obj);
+        }
+    },
+
+    rollTokenHp: function (token) {
+        var barOfHP;
+        for (var i = 0; i < 3; i++) {
+            if (shaped_utility.settings.bar[i].name === 'HP') {
+                barOfHP = i + 1;
+                break;
+            }
+        }
+        if (!barOfHP) {
+            shaped_utility.messageToChat('One of the bar names has to be set to "HP" for random HP roll');
+            return;
+        }
+
+        var barTokenName = 'bar' + (barOfHP),
+          represent = token.get('represents');
+
+        if (represent === '') {
+            //shaped_utility.messageToChat('Token does not represent a character');
+        } else if (token.get(barTokenName + '_link') !== '') {
+            //shaped_utility.messageToChat('Token ' + barTokenName + ' is linked');
+        } else {
+            var isNPC = getAttrByName(represent, 'is_npc', 'current');
+            if (isNPC === 1 || isNPC === '1') {
+
+                var hdArray = [4, 6, 8, 10, 12, 20],
+                  hdFormula = '',
+                  hdFormulaChat = '',
+                  hdAverage = 0,
+                  totalLevels = 0,
+                  conScore = parseInt(getAttrByName(represent, 'constitution', 'current'), 10),
+                  conMod = Math.floor((conScore - 10) / 2);
+
+                for (i = 0; i < hdArray.length; i++) {
+                    var numOfHDRow = parseInt(getAttrByName(represent, 'hd_d' + hdArray[i], 'current'), 10);
+                    if (numOfHDRow) {
+                        if (hdFormulaChat !== '') {
+                            hdFormulaChat += ' + ';
+                        }
+                        totalLevels += numOfHDRow;
+                        hdFormulaChat += numOfHDRow + 'd' + hdArray[i];
+                        for (var j = 0; j < numOfHDRow; j++) {
+                            if (hdFormula !== '') {
+                                hdFormula += ' + ';
+                            }
+                            hdAverage += (hdArray[i] / 2 + 1) + conMod;
+                            hdFormula += '{d' + hdArray[i] + ' + ' + conMod + ', 0d0+1';
+                            if (shaped_utility.settings.monsterHpFormula === 'average+') {
+                                hdFormula += ', 0d0+' + (hdArray[i] / 2 + 1 + conMod);
+                            }
+                            hdFormula += '}kh1';
+
+                        }
+                    }
+                }
+
+                hdFormulaChat += ' + ' + conMod * totalLevels;
+                //shaped_utility.messageToChat("Rolling HP: hdFormula: " + hdFormula);
+
+                sendChat('Shaped', '/roll ' + hdFormula, function (ops) {
+                    var rollResult = JSON.parse(ops[0].content);
+                    if (_.has(rollResult, 'total')) {
+                        token.set(barTokenName + '_value', rollResult.total);
+                        token.set(barTokenName + '_max', rollResult.total);
+
+                        shaped_utility.messageToChat('HP (' + hdFormulaChat + ') | average: ' + Math.floor(hdAverage) + ' | rolled: ' + rollResult.total);
+                    }
+                });
+            }
+        }
+        //log('Still working after trying to roll hp');
+    },
+
+    messageToChat: function (message) {
+        log(message);
+        sendChat('Shaped Utility', '/w gm ' + message);
+        if (shaped_utility.commandExecuter && shaped_utility.commandExecuter.indexOf('(GM)') === -1) {
+            sendChat('Shaped Utility', '/w \"' + shaped_utility.commandExecuter + '\" ' + message);
+        }
+    },
+
+
+
+}
+
+
+
+/*  ############################################################### */
+/*  ISGMModule */
+/*  ############################################################### */
+// IsGMModule
+
+// GIST: https://gist.github.com/shdwjk/8d5bb062abab18463625
+
+var IsGMModule = IsGMModule || {
+    version: 0.6,
+    active: true,
+    reset_password: "swordfish",
+
+    CheckInstall: function () {
+        var players = findObjs({ _type: "player" });
+
+        if (!_.has(state, 'IsGM') || !_.has(state.IsGM, 'version') || state.IsGM.version != IsGMModule.version) {
+            state.IsGM = {
+                version: IsGMModule.version,
+                gms: [],
+                players: [],
+                unknown: []
+            };
+        }
+        state.IsGM.unknown = _.difference(
+            _.pluck(players, 'id'),
+            state.IsGM.gms,
+            state.IsGM.players
+        );
+        IsGMModule.active = (state.IsGM.unknown.length > 0);
+    },
+    IsGM: function (id) {
+        return _.contains(state.IsGM.gms, id);
+    },
+    HandleMessages: function (msg) {
+        if (msg.type != "api") {
+            if (IsGMModule.active && msg.playerid != 'API') {
+                if (_.contains(state.IsGM.unknown, msg.playerid)) {
+                    var player = getObj('player', msg.playerid);
+                    if ("" === player.get('speakingas') || 'player|' + msg.playerid === player.get('speakingas')) {
+                        if (msg.who == player.get('_displayname')) {
+                            state.IsGM.players.push(msg.playerid);
+                        }
+                        else {
+                            state.IsGM.gms.push(msg.playerid);
+                            sendChat('IsGM', '/w gm ' + player.get('_displayname') + ' is now flagged as a GM.');
+                        }
+                        state.IsGM.unknown = _.without(state.IsGM.unknown, msg.playerid);
+                        IsGMModule.active = (state.IsGM.unknown.length > 0);
+                    }
+                }
+            }
+        }
+    },
+
+    resetGMCommand: function (args, msg) {
+        if (isGM(msg.playerid) || (args.length > 1 && args[1] == IsGMModule.reset_password)) {
+            delete state.IsGM;
+            IsGMModule.CheckInstall();
+            sendChat('IsGM', '/w gm IsGM data reset.');
+        }
+        else {
+            var who = getObj('player', msg.playerid).get('_displayname').split(' ')[0];
+            sendChat('IsGM', '/w ' + who + ' (' + who + ')Only GMs may reset the IsGM data.'
+            + 'If you are a GM you can reset by specifying the reset password from'
+            + 'the top of the IsGM script as an argument to !reset-isgm')
+        }
+    },
+
+    RegisterEventHandlers: function () {
+        on('chat:message', IsGMModule.HandleMessages); // ONLY for Non-API (Scanning for isGM)
+    },
+
+    init: function () {
+        IsGMModule.CheckInstall();
+        IsGMModule.RegisterEventHandlers();
+        Shell.registerCommand("!reset-isgm", "!reset-isgm password",
+                            "Reset the saved GM status of the IsGM module.", IsGMModule.resetGMCommand);
+
+    }
+};
+
+var isGM = isGM || function (id) {
+    return IsGMModule.IsGM(id);
+};
+
 on("ready", function () {
+    Shell.init();
+    Util.init();
+    IsGMModule.init();
+
     'use strict';
 
     TokenNameNumber.CheckInstall();
     TokenNameNumber.RegisterEventHandlers();
+    shaped_utility.statblock.RegisterHandlers();
+
+    if ("undefined" !== typeof isGM && _.isFunction(isGM)) {
+        Torch.CheckInstall();
+        Torch.RegisterEventHandlers();
+        APIHeartBeat.CheckInstall();
+        APIHeartBeat.RegisterEventHandlers();
+    } else {
+        log('--------------------------------------------------------------');
+        log('Torch requires the isGM module to work.');
+        log('APIHeartBeat requires the isGM module to work.');
+        log('isGM GIST: https://gist.github.com/shdwjk/8d5bb062abab18463625');
+        log('--------------------------------------------------------------');
+    }
 });
+
