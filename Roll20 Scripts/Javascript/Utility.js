@@ -940,7 +940,7 @@ var Util = Util || {
                bar2_link: 'npc_AC',
                bar3_link: 'HP',
                action: "Action",
-               side: 1,
+               side: 2,
                width: 70,
                height: 210
            },
@@ -952,6 +952,15 @@ var Util = Util || {
         roll: function (args, msg) {
             args.shift();
             Shell.write("Roll: " + Util.Roll(args[0]) || "Error","gm",undefined,"Util.Roll");
+        },
+        changetokenside: function (args, msg) {
+            log(args);
+            args.shift();
+            var token = Util.GetSelectedTokens(msg)[0],
+                side = args[0];
+            log(token);
+            log("changetokenside: token ^  Side: " + side);
+            Util.ChangeTokenSide(token,side);
         },
 	    dmecho: function (args, msg) {
 	        var showHelp = function (who) {
@@ -1059,6 +1068,7 @@ var Util = Util || {
                 Util.SetTokenValue(getAttrByName(newinfo.represents, newinfo.bar2_link + "_armor_calc", "max"), token, "bar2_max");
                 Util.SetTokenValue(getAttrByName(newinfo.represents, newinfo.bar3_link, "current"), token, "bar3_value");
                 Util.SetTokenValue(getAttrByName(newinfo.represents,newinfo.bar3_link,"max"),token,"bar3_max");
+                Util.ChangeTokenSide(token, newinfo.side);
 
                 shaped_utility.initPlayerToken(token);
                 
@@ -1286,6 +1296,43 @@ var Util = Util || {
     },
 
     CheckInstall: function () { return true; },
+
+    ChangeTokenSide: function(token,newside) {
+        var allsides = token.get("sides").split("|");
+        log(allsides);
+        Util.setImg(token,newside,allsides);
+    },
+    getCleanImgsrc: function (imgsrc) {
+        // https://s3.amazonaws.com/files.d20.io/marketplace/5692/am-hjD0fricrGJ_OZt5mLw/max.png?1339820020"
+        var parts = imgsrc.match(/(.*\/images\/.*)(thumb|med|max)(.*)$/);
+        if(parts) {
+            return parts[1]+'thumb'+parts[3];
+        }
+        return;
+    },
+    setImg: function (o, nextSide, allSides) {
+        log("setImg: nextSide: " + nextSide + " allSides[nextSide]: " + allSides[nextSide]);
+        var nextURL = decodeURIComponent(allSides[nextSide]);
+        log("Next URL pre-clean: " + nextURL);
+        nextURL = Util.getCleanImgsrc(nextURL);
+        log("Next URL: " + nextURL);
+
+        if (nextURL) {
+            o.set({
+                currentSide: nextSide,
+                imgsrc: nextURL
+            });
+        }
+        return nextURL;
+    },
+    setImgUrl: function (o, nextSide, nextURL) {
+        if (nextURL) {
+            o.set({
+                currentSide: nextSide,
+                imgsrc: nextURL
+            });
+        }
+    },
 
     HandleGraphicChange: function (obj, prev) {
         /*      //if (prev.currentSide != obj.get("currentSide")) {
@@ -1597,6 +1644,8 @@ var Util = Util || {
                             "Description here", Util.commands.dumptokens);
         Shell.registerCommand("!dumpstate", "!dumpstate",
                             "Description here", Util.commands.dumpstate);
+        Shell.registerCommand("!cts", "!cts <side>",
+                            "Description here", Util.commands.changetokenside);
 
         Util.CheckInstall();
         Util.RegisterEventHandlers();
@@ -2842,6 +2891,9 @@ var IsGMModule = IsGMModule || {
 var isGM = isGM || function (id) {
     return IsGMModule.IsGM(id);
 };
+
+
+
 
 on("ready", function () {
     Shell.init();

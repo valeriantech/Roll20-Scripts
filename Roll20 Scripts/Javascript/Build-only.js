@@ -19,6 +19,27 @@ var shaped = shaped || {
         // SEPARATE:
         // Pre-game, setup
         createAbilityAsToken: true,
+        bar: [
+          /* Setting these to a sheet value will set the token bar value. If they are set to '' or not set then it will use whatever you already have set on the token
+           Do not use npc_HP, use HP instead
+           */
+          {
+              name: '', // BLACK bar -- always stealth.
+              max: false,
+              link: false,
+              show: false
+          }, {
+              name: 'npc_AC', // YELLOW bar 'speed'
+              max: false,
+              link: true,
+              show: false
+          }, {
+              name: 'HP', // GREEN bar
+              max: true,
+              link: false,
+              show: false
+          }
+        ],
 
         showName: true, //show the name on the map (not to players)
         showNameToPlayers: false, //show the name to players
@@ -125,21 +146,25 @@ var shaped = shaped || {
 
     getSelectedToken: function (msg, callback) {
         try {
+            if (!msg) {
+                throw("Invalid msg")
+            }
             if (!msg.selected || !msg.selected.length) {
                 throw ('No token selected');
-            }
-
-            for (var i = 0; i < msg.selected.length; i++) {
-                if (msg.selected[i]._type === 'graphic') {
-                    var obj = getObj('graphic', msg.selected[i]._id);
-                    if (obj && obj.get('subtype') === 'token') {
-                        callback(obj, arguments[2]);
-                    }
-                }
             }
         } catch (e) {
             shaped.messageToChat('Exception: ' + e);
             log(msg);
+        }
+
+        for (var i = 0; i < msg.selected.length; i++) {
+            log(msg.selected[i]);
+            if (msg.selected[i]._type === 'graphic') {
+                var obj = getObj('graphic', msg.selected[i]._id);
+                if (obj && obj.get('subtype') === 'token') {
+                    callback(obj, arguments[2]);
+                }
+            }
         }
     },
 
